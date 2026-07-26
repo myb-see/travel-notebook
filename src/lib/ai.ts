@@ -9,11 +9,11 @@ export interface AiConfig {
   apiKey: string | undefined;
   baseURL: string;
   model: string;
-  source: "gemini" | "glm" | "legacy" | "coze";
+  source: "gemini" | "glm" | "offline" | "legacy" | "coze";
 }
 
 const PROVIDER_ENV_MAP: Record<
-  AiProvider,
+  "gemini" | "glm",
   { apiKey: string; baseURL: string; model: string; defaultURL: string; defaultModel: string }
 > = {
   gemini: {
@@ -33,6 +33,9 @@ const PROVIDER_ENV_MAP: Record<
 };
 
 export function getAiConfig(provider: AiProvider): AiConfig {
+  if (provider === "offline") {
+    return { apiKey: undefined, baseURL: "", model: "offline", source: "offline" };
+  }
   const env = PROVIDER_ENV_MAP[provider];
   const apiKey = process.env[env.apiKey];
 
@@ -61,6 +64,7 @@ export function getAiConfig(provider: AiProvider): AiConfig {
 }
 
 export function isProviderConfigured(provider: AiProvider): boolean {
+  if (provider === "offline") return true;
   const env = PROVIDER_ENV_MAP[provider];
   return Boolean(process.env[env.apiKey]) || Boolean(process.env.AI_API_KEY);
 }

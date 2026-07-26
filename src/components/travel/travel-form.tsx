@@ -20,6 +20,8 @@ import {
   Briefcase,
   Shuffle,
   Cpu,
+  Zap,
+  ShieldCheck,
 } from "lucide-react";
 import {
   DEFAULT_TRIP_DAYS,
@@ -141,7 +143,7 @@ function loadStoredAiProvider(): AiProvider {
   if (typeof window === "undefined") return DEFAULT_AI_PROVIDER;
   try {
     const stored = localStorage.getItem(AI_PROVIDER_STORAGE_KEY);
-    if (stored === "gemini" || stored === "glm") return stored;
+    if (stored === "gemini" || stored === "glm" || stored === "offline") return stored;
   } catch {
     // localStorage may be unavailable.
   }
@@ -364,30 +366,79 @@ export function TravelForm({ onSubmit, isLoading }: TravelFormProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-          <Cpu className="w-4 h-4 text-travel-blue" />
-          AI 模型
-        </Label>
-        <div className="grid grid-cols-2 gap-2">
-          {(["gemini", "glm"] as const).map((provider) => (
-            <button
-              key={provider}
-              type="button"
-              aria-pressed={aiProvider === provider}
-              onClick={() => handleAiProviderChange(provider)}
-              className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                aiProvider === provider
-                  ? "border-travel-blue/50 bg-travel-blue/10 text-foreground"
-                  : "border-border bg-card text-muted-foreground hover:border-travel-blue/30"
-              }`}
-            >
-              <span className="block text-sm font-medium">{aiProviderLabels[provider]}</span>
-            </button>
-          ))}
+      <div className="space-y-3 rounded-2xl border border-travel-blue/20 bg-gradient-to-br from-travel-blue/5 via-background to-travel-sand/5 p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-travel-blue" />
+            AI 引擎与生成模式
+          </Label>
+          <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border/50">
+            模式随时切换
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          选择不同的 AI 模型可以对比生成效果，旅行参数会保持不变。
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {[
+            {
+              id: "gemini" as const,
+              label: "Google Gemini",
+              sub: "3.5 Flash 极速流",
+              icon: Sparkles,
+              badge: "AI 主流",
+              activeColor: "border-travel-blue bg-travel-blue/10 text-travel-blue ring-2 ring-travel-blue/20",
+            },
+            {
+              id: "glm" as const,
+              label: "智谱 GLM",
+              sub: "4 Flash 热备流",
+              icon: Zap,
+              badge: "国产高可靠",
+              activeColor: "border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400 ring-2 ring-purple-500/20",
+            },
+            {
+              id: "offline" as const,
+              label: "离线精选模板",
+              sub: "0 延迟闪电生成",
+              icon: ShieldCheck,
+              badge: "0 延迟 100% 成功",
+              activeColor: "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20",
+            },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = aiProvider === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => handleAiProviderChange(item.id)}
+                className={`group relative flex flex-col justify-between rounded-xl border p-3 text-left transition-all duration-200 hover:scale-[1.02] ${
+                  isActive
+                    ? item.activeColor
+                    : "border-border/80 bg-card/60 text-muted-foreground hover:border-travel-blue/40 hover:bg-card"
+                }`}
+              >
+                <div className="flex items-center justify-between w-full mb-1">
+                  <div className="flex items-center gap-1.5 font-medium text-xs">
+                    <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? "" : "text-muted-foreground"}`} />
+                    <span className="font-semibold text-sm text-foreground">{item.label}</span>
+                  </div>
+                  {isActive && (
+                    <span className="w-2 h-2 rounded-full bg-current animate-pulse shrink-0" />
+                  )}
+                </div>
+                <div className="flex items-center justify-between w-full mt-1.5 text-[11px] opacity-80">
+                  <span>{item.sub}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-background/80 border border-border/40 font-mono">
+                    {item.badge}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground/80 leading-relaxed pt-0.5">
+          可随意选择在线 AI 引擎对比效果；若遭遇局域网络卡顿或 API 限流，选择<span className="text-emerald-600 dark:text-emerald-400 font-medium">【离线精选模板】</span>可实现 0 延迟 100% 成功生成。
         </p>
       </div>
 

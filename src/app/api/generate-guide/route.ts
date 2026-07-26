@@ -105,6 +105,21 @@ export async function POST(request: NextRequest) {
 
       let fullText = "";
       try {
+        if (trip.aiProvider === "offline") {
+          const baseFallback = buildFallbackGuide(trip);
+          const result = await enrichGuideWithPhotos(baseFallback, trip.destination);
+          send({
+            result: {
+              ...result,
+              dataSource: "fallback",
+              dataNotice: "已使用 0 延迟离线精选模板为您规划攻略。",
+            },
+            source: "fallback",
+            warning: undefined,
+          });
+          return;
+        }
+
         for await (const chunk of streamAI(
           [
             { role: "system", content: systemPrompt },

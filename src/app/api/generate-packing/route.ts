@@ -97,6 +97,20 @@ export async function POST(request: NextRequest) {
 
       let fullText = "";
       try {
+        if (trip.aiProvider === "offline") {
+          const result = buildFallbackPacking(trip);
+          send({
+            result: {
+              ...result,
+              dataSource: "fallback",
+              dataNotice: "已使用 0 延迟离线精选行李模板为您生成清单。",
+            },
+            source: "fallback",
+            warning: undefined,
+          });
+          return;
+        }
+
         for await (const chunk of streamAI(
           [
             { role: "system", content: systemPrompt },

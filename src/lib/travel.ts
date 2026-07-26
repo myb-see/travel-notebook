@@ -12,12 +12,13 @@ export const activityIds = [
 export const paceIds = ["relaxed", "balanced", "intensive"] as const;
 export const companionIds = ["solo", "couple", "friends", "family", "business"] as const;
 
-export const aiProviderIds = ["gemini", "glm"] as const;
+export const aiProviderIds = ["gemini", "glm", "offline"] as const;
 export type AiProvider = (typeof aiProviderIds)[number];
 
 export const aiProviderLabels: Record<AiProvider, string> = {
   gemini: "Google Gemini Flash",
   glm: "智谱 GLM Flash",
+  offline: "离线精选模板",
 };
 
 export const DEFAULT_AI_PROVIDER: AiProvider = "gemini";
