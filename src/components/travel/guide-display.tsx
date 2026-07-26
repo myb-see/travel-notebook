@@ -103,7 +103,7 @@ export function GuideDisplay({ guide }: GuideDisplayProps) {
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
                     <span className="inline-flex items-center gap-1.5 text-xs bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
                       <Camera className="w-3.5 h-3.5 text-yellow-400" />
-                      官方真实实拍
+                      参考图片 · 来源 Wikimedia
                     </span>
                   </div>
                 </div>

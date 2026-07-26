@@ -33,11 +33,15 @@ const iconMap: Record<string, ElementType> = {
   other: Package,
 };
 
+const getItemKey = (categoryName: string, itemName: string) => {
+  return `${categoryName.trim().toLowerCase()}:${itemName.trim().toLowerCase()}`;
+};
+
 export function PackingDisplay({ packing, storageKey }: PackingDisplayProps) {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [hydratedKey, setHydratedKey] = useState<string | null>(null);
   const localStorageKey = useMemo(
-    () => `travel-packing-v2:${encodeURIComponent(storageKey)}`,
+    () => `travel-packing-v3:${encodeURIComponent(storageKey)}`,
     [storageKey]
   );
 
@@ -79,10 +83,12 @@ export function PackingDisplay({ packing, storageKey }: PackingDisplayProps) {
   };
 
   const totalItems = packing.categories.reduce((sum, category) => sum + category.items.length, 0);
-  const checkedCount = [...checkedItems].filter((key) => {
-    const [catIndex, itemIndex] = key.split(":").map(Number);
-    return Boolean(packing.categories[catIndex]?.items[itemIndex]);
-  }).length;
+  const checkedCount = packing.categories.reduce((sum, category) => {
+    return (
+      sum +
+      category.items.filter((item) => checkedItems.has(getItemKey(category.name, item.name))).length
+    );
+  }, 0);
   const progress = totalItems > 0 ? (checkedCount / totalItems) * 100 : 0;
 
   return (
@@ -110,26 +116,19 @@ export function PackingDisplay({ packing, storageKey }: PackingDisplayProps) {
             {checkedCount} / {totalItems}
           </span>
         </div>
-        <div
-          className="h-2 bg-muted rounded-full overflow-hidden"
-          role="progressbar"
-          aria-label="打包进度"
-          aria-valuemin={0}
-          aria-valuemax={totalItems}
-          aria-valuenow={checkedCount}
-        >
+        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
           <div
-            className="h-full bg-travel-sand rounded-full transition-all duration-300 ease-out"
+            className="bg-travel-sand h-full transition-all duration-300 rounded-full"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {packing.categories.map((category, catIndex) => {
           const IconComponent = iconMap[category.icon] || Package;
           const completed = category.items.reduce(
-            (sum, _item, itemIndex) => sum + (checkedItems.has(`${catIndex}:${itemIndex}`) ? 1 : 0),
+            (sum, item) => sum + (checkedItems.has(getItemKey(category.name, item.name)) ? 1 : 0),
             0
           );
 
@@ -147,7 +146,7 @@ export function PackingDisplay({ packing, storageKey }: PackingDisplayProps) {
               <CardContent className="pt-0 pb-3.5 px-4">
                 <ul className="space-y-2">
                   {category.items.map((item, itemIndex) => {
-                    const key = `${catIndex}:${itemIndex}`;
+                    const key = getItemKey(category.name, item.name);
                     const inputId = `packing-${catIndex}-${itemIndex}`;
                     const isChecked = checkedItems.has(key);
                     return (

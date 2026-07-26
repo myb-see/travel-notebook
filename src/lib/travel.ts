@@ -398,8 +398,33 @@ export function extractJSONObject(text: string): unknown | null {
   return null;
 }
 
-export function validateGuideText(text: string): GuideData | null {
+export function validateGuideText(text: string, expectedDays?: number): GuideData | null {
   const parsed = extractJSONObject(text);
+  if (!parsed) return null;
+
+  if (expectedDays && expectedDays > 0) {
+    const strictSchema = GuideDataSchema.superRefine((guide, ctx) => {
+      if (guide.itinerary.length !== expectedDays) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["itinerary"],
+          message: `行程天数必须等于 ${expectedDays} 天`,
+        });
+      }
+      guide.itinerary.forEach((item, index) => {
+        if (item.day !== index + 1) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["itinerary", index, "day"],
+            message: "Day 序号必须从 1 连续递增",
+          });
+        }
+      });
+    });
+    const result = strictSchema.safeParse(parsed);
+    return result.success ? result.data : null;
+  }
+
   const result = GuideDataSchema.safeParse(parsed);
   return result.success ? result.data : null;
 }

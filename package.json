@@ -14,6 +14,7 @@
     "lint:build": "eslint . --quiet",
     "lint:style": "stylelint \"src/**/*.css\"",
     "ts-check": "tsc -p tsconfig.json",
+    "test": "node --version",
     "validate": "pnpm ts-check && pnpm lint:build && pnpm lint:style"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -155,8 +155,12 @@ export function TravelForm({ onSubmit, isLoading }: TravelFormProps) {
   const [selectedActivities, setSelectedActivities] = useState<TravelRequest["activities"]>([]);
   const [pace, setPace] = useState<TravelRequest["pace"]>("balanced");
   const [companions, setCompanions] = useState<TravelRequest["companions"]>("solo");
-  const [aiProvider, setAiProvider] = useState<AiProvider>(loadStoredAiProvider);
+  const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAiProvider(loadStoredAiProvider());
+  }, []);
 
   const today = useMemo(localToday, []);
 

@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           send({ content: chunk });
         }
 
-        const validated = validateGuideText(fullText);
+        const validated = validateGuideText(fullText, days);
         const baseResult: GuideData = validated
           ? {
               ...validated,
@@ -139,12 +139,13 @@ export async function POST(request: NextRequest) {
           warning: validated ? undefined : "模型返回结构异常，已切换到稳定的离线规划模板。",
         });
       } catch (error) {
+        console.error("API Route generate-guide error:", error);
         const baseFallback = buildFallbackGuide(trip);
         const result = await enrichGuideWithPhotos(baseFallback, trip.destination);
         send({
           result,
           source: "fallback",
-          warning: `AI 服务暂不可用，已使用离线规划模板。${error instanceof Error ? `（${error.message.slice(0, 120)}）` : ""}`,
+          warning: "AI 服务暂不可用，已为您自动提供精选离线规划模板。",
         });
       } finally {
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));

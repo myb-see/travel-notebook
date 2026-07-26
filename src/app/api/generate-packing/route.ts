@@ -129,11 +129,12 @@ export async function POST(request: NextRequest) {
           warning: validated ? undefined : "模型返回结构异常，已切换到稳定的离线行李模板。",
         });
       } catch (error) {
+        console.error("API Route generate-packing error:", error);
         const result = buildFallbackPacking(trip);
         send({
           result,
           source: "fallback",
-          warning: `AI 服务暂不可用，已使用离线行李模板。${error instanceof Error ? `（${error.message.slice(0, 120)}）` : ""}`,
+          warning: "AI 服务暂不可用，已为您自动提供实用离线行李模板。",
         });
       } finally {
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));

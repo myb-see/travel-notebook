@@ -32,32 +32,28 @@ const PROVIDER_ENV_MAP: Record<
   },
 };
 
-const HARDCODED_FALLBACK_GLM_KEY = "9722cf33f8164985a280786bc559437a.PI1fsO5GBJX24MwL";
-
 export function getAiConfig(provider: AiProvider): AiConfig {
   const env = PROVIDER_ENV_MAP[provider];
-  let apiKey = process.env[env.apiKey];
-  if (!apiKey && provider === "glm") {
-    apiKey = HARDCODED_FALLBACK_GLM_KEY;
-  }
-  if (!apiKey) {
-    apiKey = process.env.AI_API_KEY;
-  }
+  const apiKey = process.env[env.apiKey];
 
+  // 1. 显式供应商配置（GEMINI_API_KEY 或 GLM_API_KEY）
   if (apiKey) {
-    let model = process.env[env.model] || env.defaultModel;
-    if (provider === "gemini" && (model.includes("2.0") || !model)) {
-      model = "gemini-3.5-flash";
-    }
-    if (provider === "glm" && (!process.env.GLM_MODEL || model === "glm-4.7-flash")) {
-      model = "glm-4-flash";
-    }
-
+    const model = process.env[env.model] || env.defaultModel;
     return {
       apiKey,
       baseURL: (process.env[env.baseURL] || env.defaultURL).replace(/\/$/, ""),
       model,
       source: provider,
+    };
+  }
+
+  // 2. 通用兼容配置（仅在同时显式提供 AI_API_KEY、AI_BASE_URL、AI_MODEL 时触发）
+  if (process.env.AI_API_KEY && process.env.AI_BASE_URL && process.env.AI_MODEL) {
+    return {
+      apiKey: process.env.AI_API_KEY,
+      baseURL: process.env.AI_BASE_URL.replace(/\/$/, ""),
+      model: process.env.AI_MODEL,
+      source: "legacy",
     };
   }
 
