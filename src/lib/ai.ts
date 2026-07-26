@@ -71,6 +71,7 @@ async function* streamOpenAICompatible(
 ): AsyncGenerator<string> {
   if (!config.apiKey) throw new Error("未配置 AI API Key");
 
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120_000);
 
@@ -84,9 +85,9 @@ async function* streamOpenAICompatible(
       body: JSON.stringify({
         model: config.model,
         messages,
-        temperature: 0.55,
-        max_tokens: 8192,
+        temperature: 0.3,
         max_completion_tokens: 8192,
+        response_format: { type: "json_object" },
         stream: true,
       }),
       signal: controller.signal,
@@ -103,16 +104,25 @@ async function* streamOpenAICompatible(
     const decoder = new TextDecoder();
     let buffer = "";
 
-    const parseLine = (rawLine: string): string | null => {
+    const parseLine = (
+      rawLine: string
+    ): { content: string | null; finishReason: string | null } | null => {
       const line = rawLine.trim();
       if (!line.startsWith("data:")) return null;
       const data = line.slice(5).trim();
       if (!data || data === "[DONE]") return null;
       try {
         const parsed = JSON.parse(data) as {
-          choices?: Array<{ delta?: { content?: string }; message?: { content?: string } }>;
+          choices?: Array<{
+            delta?: { content?: string };
+            message?: { content?: string };
+            finish_reason?: string | null;
+          }>;
         };
-        return parsed.choices?.[0]?.delta?.content ?? parsed.choices?.[0]?.message?.content ?? null;
+        const choice = parsed.choices?.[0];
+        const content = choice?.delta?.content ?? choice?.message?.content ?? null;
+        const finishReason = choice?.finish_reason ?? null;
+        return { content, finishReason };
       } catch {
         return null;
       }
@@ -127,14 +137,34 @@ async function* streamOpenAICompatible(
       buffer = lines.pop() || "";
 
       for (const rawLine of lines) {
-        const content = parseLine(rawLine);
-        if (content) yield content;
+        const res = parseLine(rawLine);
+        if (res) {
+          if (res.finishReason) {
+            console.info("AI stream finished", {
+              provider: config.source,
+              model: config.model,
+              finishReason: res.finishReason,
+              elapsedMs: Date.now() - startedAt,
+            });
+          }
+          if (res.content) yield res.content;
+        }
       }
     }
 
     if (buffer.trim()) {
-      const content = parseLine(buffer);
-      if (content) yield content;
+      const res = parseLine(buffer);
+      if (res) {
+        if (res.finishReason) {
+          console.info("AI stream finished", {
+            provider: config.source,
+            model: config.model,
+            finishReason: res.finishReason,
+            elapsedMs: Date.now() - startedAt,
+          });
+        }
+        if (res.content) yield res.content;
+      }
     }
   } finally {
     clearTimeout(timeout);
@@ -147,7 +177,7 @@ async function* streamCoze(messages: AIMessage[], headers: Headers): AsyncGenera
   const client = new LLMClient(new Config(), customHeaders);
   const stream = client.stream(messages, {
     model: process.env.COZE_AI_MODEL || "doubao-seed-2-0-pro-260215",
-    temperature: 0.55,
+    temperature: 0.3,
   });
 
   for await (const chunk of stream) {
@@ -163,36 +193,50 @@ export async function* streamAI(
   const config = getAiConfig(provider);
 
   if (config.apiKey) {
-      try {
-        yield* streamOpenAICompatible(messages, config);
-        return;
-      } catch (err) {
-        // 智能热备无缝倒换：当主 AI 触发 429/限流/错误时，自动尝试无缝倒换至备用 AI
-        const fallbackProvider: AiProvider = provider === "gemini" ? "glm" : "gemini";
-        const fallbackConfig = getAiConfig(fallbackProvider);
-        if (
-          fallbackConfig.apiKey &&
-          (fallbackConfig.baseURL !== config.baseURL || fallbackConfig.model !== config.model)
-        ) {
-          try {
-            yield* streamOpenAICompatible(messages, fallbackConfig);
-            return;
-          } catch (fallbackError) {
-            console.error("双 AI 热备倒换：主备 AI 均响应失败", {
-              primaryProvider: provider,
-              fallbackProvider,
-              primaryError: err,
-              fallbackError,
-            });
-
-            const getMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
-            throw new Error(
-              `主 AI (${provider}) 失败: ${getMsg(err)} ； 备用 AI (${fallbackProvider}) 失败: ${getMsg(fallbackError)}`
-            );
-          }
-        }
-        throw err;
+    let emitted = false;
+    try {
+      for await (const chunk of streamOpenAICompatible(messages, config)) {
+        emitted = true;
+        yield chunk;
       }
+      return;
+    } catch (primaryError) {
+      // 关键防线：若主 AI 已经开始向客户端吐字（emitted === true），禁止中途追加备用 AI 避免 JSON 拼接损坏！
+      if (emitted) {
+        console.warn("主 AI 在输出部分内容后中断，终止倒换以防 JSON 拼接破坏", {
+          provider,
+          primaryError,
+        });
+        throw primaryError;
+      }
+
+      const fallbackProvider: AiProvider = provider === "gemini" ? "glm" : "gemini";
+      const fallbackConfig = getAiConfig(fallbackProvider);
+      if (
+        fallbackConfig.apiKey &&
+        (fallbackConfig.baseURL !== config.baseURL || fallbackConfig.model !== config.model)
+      ) {
+        try {
+          for await (const chunk of streamOpenAICompatible(messages, fallbackConfig)) {
+            yield chunk;
+          }
+          return;
+        } catch (fallbackError) {
+          console.error("主备 AI 均响应失败", {
+            primaryProvider: provider,
+            fallbackProvider,
+            primaryError,
+            fallbackError,
+          });
+
+          const getMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+          throw new Error(
+            `主 AI (${provider}) 失败: ${getMsg(primaryError)} ； 备用 AI (${fallbackProvider}) 失败: ${getMsg(fallbackError)}`
+          );
+        }
+      }
+      throw primaryError;
+    }
   }
 
   yield* streamCoze(messages, headers);
