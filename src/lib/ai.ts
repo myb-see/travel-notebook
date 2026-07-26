@@ -161,26 +161,36 @@ export async function* streamAI(
   const config = getAiConfig(provider);
 
   if (config.apiKey) {
-    try {
-      yield* streamOpenAICompatible(messages, config);
-      return;
-    } catch (err) {
-      // 智能热备无缝倒换：当主 AI 触发 429/限流/错误时，自动尝试无缝倒换至备用 AI
-      const fallbackProvider: AiProvider = provider === "gemini" ? "glm" : "gemini";
-      const fallbackConfig = getAiConfig(fallbackProvider);
-      if (
-        fallbackConfig.apiKey &&
-        (fallbackConfig.baseURL !== config.baseURL || fallbackConfig.model !== config.model)
-      ) {
-        try {
-          yield* streamOpenAICompatible(messages, fallbackConfig);
-          return;
-        } catch {
-          // Ignore secondary failure and throw original error
+      try {
+        yield* streamOpenAICompatible(messages, config);
+        return;
+      } catch (err) {
+        // 智能热备无缝倒换：当主 AI 触发 429/限流/错误时，自动尝试无缝倒换至备用 AI
+        const fallbackProvider: AiProvider = provider === "gemini" ? "glm" : "gemini";
+        const fallbackConfig = getAiConfig(fallbackProvider);
+        if (
+          fallbackConfig.apiKey &&
+          (fallbackConfig.baseURL !== config.baseURL || fallbackConfig.model !== config.model)
+        ) {
+          try {
+            yield* streamOpenAICompatible(messages, fallbackConfig);
+            return;
+          } catch (fallbackError) {
+            console.error("双 AI 热备倒换：主备 AI 均响应失败", {
+              primaryProvider: provider,
+              fallbackProvider,
+              primaryError: err,
+              fallbackError,
+            });
+
+            const getMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+            throw new Error(
+              `主 AI (${provider}) 失败: ${getMsg(err)} ； 备用 AI (${fallbackProvider}) 失败: ${getMsg(fallbackError)}`
+            );
+          }
         }
+        throw err;
       }
-      throw err;
-    }
   }
 
   yield* streamCoze(messages, headers);
