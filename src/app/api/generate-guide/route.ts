@@ -6,6 +6,7 @@ import {
   activityLabels,
   buildFallbackGuide,
   companionLabels,
+  enrichGuideWithPhotos,
   getTripDays,
   hasTravelDates,
   paceLabels,
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
         }
 
         const validated = validateGuideText(fullText);
-        const result: GuideData = validated
+        const baseResult: GuideData = validated
           ? {
               ...validated,
               dataSource: "ai",
@@ -130,13 +131,16 @@ export async function POST(request: NextRequest) {
             }
           : buildFallbackGuide(trip);
 
+        const result = await enrichGuideWithPhotos(baseResult, trip.destination);
+
         send({
           result,
           source: result.dataSource,
           warning: validated ? undefined : "模型返回结构异常，已切换到稳定的离线规划模板。",
         });
       } catch (error) {
-        const result = buildFallbackGuide(trip);
+        const baseFallback = buildFallbackGuide(trip);
+        const result = await enrichGuideWithPhotos(baseFallback, trip.destination);
         send({
           result,
           source: "fallback",
