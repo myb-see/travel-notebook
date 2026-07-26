@@ -243,7 +243,7 @@ export async function fetchWikiAttractionPhoto(
   const getJson = async (url: string) => {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      const timeout = setTimeout(() => controller.abort(), 2000);
       const res = await fetch(url, {
         headers: { "User-Agent": "TravelNotebookApp/2.0 (https://travel.521026.xyz; mybsee@gmail.com)" },
         signal: controller.signal,
