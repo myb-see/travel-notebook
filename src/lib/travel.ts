@@ -134,6 +134,7 @@ export const GuideDataSchema = z.object({
         name: z.string().min(1),
         description: z.string().min(1),
         recommendation: z.string().min(1),
+        imageUrl: z.string().optional(),
       })
     )
     .min(1),
@@ -359,19 +360,27 @@ export async function enrichGuideWithPhotos(
   guide: GuideData,
   destination: string
 ): Promise<GuideData> {
-  if (!guide.attractions || guide.attractions.length === 0) return guide;
+  const attractionPromise = (guide.attractions || []).map(async (attraction) => {
+    if (attraction.imageUrl) return attraction;
+    const photo = await fetchWikiAttractionPhoto(attraction.name, destination);
+    return photo ? { ...attraction, imageUrl: photo } : attraction;
+  });
 
-  const enrichedAttractions = await Promise.all(
-    guide.attractions.map(async (attraction) => {
-      if (attraction.imageUrl) return attraction;
-      const photo = await fetchWikiAttractionPhoto(attraction.name, destination);
-      return photo ? { ...attraction, imageUrl: photo } : attraction;
-    })
-  );
+  const foodPromise = (guide.food || []).map(async (item) => {
+    if (item.imageUrl) return item;
+    const photo = await fetchWikiAttractionPhoto(item.name, destination);
+    return photo ? { ...item, imageUrl: photo } : item;
+  });
+
+  const [enrichedAttractions, enrichedFood] = await Promise.all([
+    Promise.all(attractionPromise),
+    Promise.all(foodPromise),
+  ]);
 
   return {
     ...guide,
     attractions: enrichedAttractions,
+    food: enrichedFood,
   };
 }
 

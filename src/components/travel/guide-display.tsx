@@ -199,25 +199,46 @@ export function GuideDisplay({ guide }: GuideDisplayProps) {
           {guide.food.map((food, index) => (
             <Card
               key={index}
-              className="group hover:shadow-md transition-all duration-200 border-border/60"
+              className="group overflow-hidden hover:shadow-md transition-all duration-200 border-border/60"
             >
-              <CardHeader className="pb-1 pt-4 px-4">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <span className="text-lg">🍜</span>
-                  {food.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 pb-4 px-4 space-y-1.5">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {food.description}
-                </p>
-                {food.recommendation && (
-                  <p className="text-xs text-travel-blue/80 bg-travel-blue/5 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3" />
-                    {food.recommendation}
-                  </p>
+              <div className="flex flex-col sm:flex-row">
+                {food.imageUrl && (
+                  <div className="relative w-full sm:w-48 h-36 sm:h-auto shrink-0 overflow-hidden bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={food.imageUrl}
+                      alt={food.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLElement).parentElement?.classList.add("hidden");
+                      }}
+                    />
+                    <span className="absolute bottom-1.5 left-1.5 text-[10px] text-white/90 bg-black/60 backdrop-blur-xs px-1.5 py-0.5 rounded font-mono">
+                      参考图片 · 来源 Wikimedia
+                    </span>
+                  </div>
                 )}
-              </CardContent>
+                <div className="flex-1 p-4 flex flex-col justify-between">
+                  <div>
+                    <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2 mb-1.5">
+                      <span className="text-lg">🍜</span>
+                      {food.name}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {food.description}
+                    </p>
+                  </div>
+                  {food.recommendation && (
+                    <div className="mt-2.5">
+                      <span className="text-xs text-travel-blue/90 bg-travel-blue/10 border border-travel-blue/20 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5 font-medium">
+                        <MapPin className="w-3 h-3 text-travel-blue" />
+                        {food.recommendation}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
           ))}
         </TabsContent>
