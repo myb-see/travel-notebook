@@ -32,9 +32,17 @@ const PROVIDER_ENV_MAP: Record<
   },
 };
 
+const HARDCODED_FALLBACK_GLM_KEY = "9722cf33f8164985a280786bc559437a.PI1fsO5GBJX24MwL";
+
 export function getAiConfig(provider: AiProvider): AiConfig {
   const env = PROVIDER_ENV_MAP[provider];
-  const apiKey = process.env[env.apiKey] || process.env.AI_API_KEY;
+  let apiKey = process.env[env.apiKey];
+  if (!apiKey && provider === "glm") {
+    apiKey = HARDCODED_FALLBACK_GLM_KEY;
+  }
+  if (!apiKey) {
+    apiKey = process.env.AI_API_KEY;
+  }
 
   if (apiKey) {
     let model = process.env[env.model] || env.defaultModel;
