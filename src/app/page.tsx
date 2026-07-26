@@ -256,15 +256,10 @@ export default function Home() {
       setPackingError(null);
       setView("form");
 
-      if (request.aiProvider === "glm") {
-        // GLM: 串行执行，消除免费账号并发风控 (Error 1302)
-        await runGuide(request);
-        await runPacking(request);
-      } else {
-        // Gemini: 并行/并发极速执行，充分利用高吞吐带宽
-        void runPacking(request);
-        await runGuide(request);
-      }
+      // 统一采用串行顺序调度 (runGuide 运行完毕后再启动 runPacking)
+      // 彻底消除免费 API Key 在并发/同时发起 2 个请求时的 429 Rate Limit 限制
+      await runGuide(request);
+      await runPacking(request);
     },
     [runGuide, runPacking]
   );
