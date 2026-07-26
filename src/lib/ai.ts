@@ -38,10 +38,18 @@ export function getAiConfig(provider: AiProvider): AiConfig {
 
   // Provider-specific env vars take priority; fall back to legacy AI_API_KEY.
   if (apiKey) {
+    let model = process.env[env.model] || env.defaultModel;
+    if (provider === "gemini" && (model.includes("2.0") || !model)) {
+      model = "gemini-3.5-flash";
+    }
+    if (provider === "glm" && (!process.env.GLM_MODEL || model === "glm-4.7-flash")) {
+      model = "glm-4-flash";
+    }
+
     return {
       apiKey,
       baseURL: (process.env[env.baseURL] || env.defaultURL).replace(/\/$/, ""),
-      model: process.env[env.model] || env.defaultModel,
+      model,
       source: provider,
     };
   }
