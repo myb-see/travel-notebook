@@ -236,6 +236,83 @@ export function formatActivities(activities: TravelRequest["activities"]): strin
   return activities.map((activity) => activityLabels[activity]).join("、");
 }
 
+export async function fetchWikiAttractionPhoto(
+  title: string,
+  destination: string
+): Promise<string | null> {
+  const getJson = async (url: string) => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(url, {
+        headers: { "User-Agent": "TravelNotebookApp/2.0 (mybsee@gmail.com)" },
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
+  const rawClean = title.replace(/（[^）]*）|\([^)]*\)/g, "").trim();
+  const mainPart = rawClean.split(/[与和及/、]/)[0].trim();
+  const pureName = mainPart.replace(/历史城区|景区|公园|风景区|遗址|纪念馆|博物院|博物馆/g, "").trim();
+
+  const searchTerms = [
+    `${destination} ${pureName}`,
+    `${destination}${pureName}`,
+    mainPart,
+    pureName,
+  ];
+
+  for (const term of searchTerms) {
+    if (!term || term.length < 2) continue;
+    const wikiUrl = `https://zh.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
+      term
+    )}&prop=pageimages&pithumbsize=800&redirects=1&format=json`;
+
+    const data = (await getJson(wikiUrl)) as {
+      query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+    } | null;
+
+    if (data?.query?.pages) {
+      const pageId = Object.keys(data.query.pages)[0];
+      if (pageId && pageId !== "-1") {
+        const src = data.query.pages[pageId]?.thumbnail?.source;
+        if (src) return src;
+      }
+    }
+  }
+
+  // Fallback to Wikipedia Opensearch
+  for (const term of [pureName, `${destination} ${pureName}`]) {
+    if (!term || term.length < 2) continue;
+    const searchUrl = `https://zh.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
+      term
+    )}&limit=1&namespace=0&format=json`;
+    const searchData = (await getJson(searchUrl)) as [string, string[]] | null;
+    if (searchData && searchData[1] && searchData[1][0]) {
+      const candidateTitle = searchData[1][0];
+      const pageUrl = `https://zh.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
+        candidateTitle
+      )}&prop=pageimages&pithumbsize=800&redirects=1&format=json`;
+      const pData = (await getJson(pageUrl)) as {
+        query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+      } | null;
+      if (pData?.query?.pages) {
+        const pId = Object.keys(pData.query.pages)[0];
+        if (pId && pId !== "-1") {
+          const src = pData.query.pages[pId]?.thumbnail?.source;
+          if (src) return src;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 export function extractJSONObject(text: string): unknown | null {
   const candidates: string[] = [];
   const jsonBlock = text.match(/```json\s*([\s\S]*?)```/i)?.[1];
