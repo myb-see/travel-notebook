@@ -56,7 +56,7 @@ async function streamFetch(
   onChunk?: (fullText: string) => void
 ): Promise<StreamResponse> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 70_000);
+  const timeout = window.setTimeout(() => controller.abort(), 120_000);
 
   try {
     const response = await fetch(url, {

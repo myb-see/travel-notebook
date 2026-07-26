@@ -72,7 +72,7 @@ async function* streamOpenAICompatible(
   if (!config.apiKey) throw new Error("未配置 AI API Key");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 48_000);
+  const timeout = setTimeout(() => controller.abort(), 120_000);
 
   try {
     const response = await fetch(`${config.baseURL}/chat/completions`, {
