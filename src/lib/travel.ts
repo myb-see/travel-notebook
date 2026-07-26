@@ -114,6 +114,7 @@ export const GuideDataSchema = z.object({
         description: z.string().min(1),
         tips: z.string().min(1),
         duration: z.string().min(1),
+        imageUrl: z.string().optional(),
       })
     )
     .min(1),
@@ -463,12 +464,23 @@ export function buildFallbackGuide(request: TravelRequest): GuideData {
 
   return {
     overview: `${request.destination}经典规划方案：${dateContext}，旅行节奏为${paceText}，同行方式为${companionText}，重点偏向${activityText}。以下为您精选当地核心景点与行程搭配。`,
-    attractions: selectedLandmarks.map(([name, description, tips, duration]) => ({
-      name: matchedCity ? name : `${request.destination}${name}`,
-      description,
-      tips,
-      duration,
-    })),
+    attractions: selectedLandmarks.map(([name, description, tips, duration]) => {
+      const actualName = matchedCity ? name : `${request.destination}${name}`;
+      let imageUrl: string | undefined;
+      for (const [key, url] of Object.entries(PRESET_ATTRACTION_IMAGES)) {
+        if (actualName.includes(key)) {
+          imageUrl = url;
+          break;
+        }
+      }
+      return {
+        name: actualName,
+        description,
+        tips,
+        duration,
+        imageUrl,
+      };
+    }),
     itinerary: Array.from({ length: days }, (_, index) => {
       const day = index + 1;
       const theme = themes[index % themes.length];
