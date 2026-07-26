@@ -365,14 +365,26 @@ export function validatePackingText(text: string): PackingData | null {
   return result.success ? result.data : null;
 }
 
-const genericAttractions = [
-  ["历史核心区", "从城市最具代表性的街区开始，了解当地历史脉络与建筑风格。", "优先步行游览，并在出发前核实开放区域。", "2–3 小时"],
-  ["代表性博物馆", "通过常设展览快速建立对目的地文化、艺术与社会背景的认识。", "提前预约热门时段，注意闭馆日。", "2–3 小时"],
-  ["城市地标与观景点", "从高处或标志性公共空间观察城市布局与天际线。", "日落前 1 小时到达，兼顾白天与夜景。", "1.5–2 小时"],
-  ["本地市场", "体验当地食材、日常消费与市井文化，适合安排简餐。", "携带少量现金并注意个人物品。", "1–2 小时"],
-  ["特色社区", "避开单一打卡点，在咖啡馆、小店与公共空间中感受本地生活。", "按兴趣挑选 2–3 个相邻街区，避免跨城折返。", "半天"],
-  ["公园或滨水区域", "作为高强度游览后的缓冲，适合散步、休息和拍摄。", "根据天气准备防晒、防雨或保暖层。", "1.5–3 小时"],
-] as const;
+const cityLandmarksMap: Record<string, Array<[string, string, string, string]>> = {
+  青岛: [
+    ["栈桥", "青岛标志性建筑与海滨景观，延伸至海中的百年长廊。", "建议潮汐低谷时前往，可观赏退潮后的礁石风光。", "1.5–2 小时"],
+    ["八大关风景区", "由十条以中国长城关隘命名的街道构成，汇聚多国风格别墅建筑。", "适合漫步拍照，重点推荐花石楼与公主楼。", "2–3 小时"],
+    ["信号山公园", "老城区制高点，顶层旋转观景台可俯瞰青岛“红瓦绿树、碧海蓝天”。", "日落前 1 小时登顶，体验绝佳全景。", "1–1.5 小时"],
+    ["青岛啤酒博物馆", "在百年老厂房中展示青岛啤酒的发展历史与工业生产线。", "门票包含免费新鲜原浆啤酒与花生小食。", "2 小时"],
+    ["五四广场", "青岛市中心海滨广场，以大型红色雕塑“五月的风”为标志。", "夜间亮灯后景色优雅，可沿海滨步道散步。", "1 小时"],
+  ],
+  成都: [
+    ["宽窄巷子", "由宽巷子、窄巷子和井巷子平行排列组成，保留了清末民初的古街格局。", "早晨游览客流较少，可品尝盖碗茶与成都小吃。", "2–3 小时"],
+    ["锦里", "紧邻武侯祠的著名三国文化主题街区，浓缩了成都民俗与老街风貌。", "傍晚提灯亮起时氛围绝佳。", "2 小时"],
+    ["武侯祠", "中国唯一的君臣合祀祠堂，红墙竹影是极具特色的打卡点。", "建议选择官方讲解或语音导览。", "2 小时"],
+    ["成都大熊猫繁育研究基地", "近距离观赏大熊猫和小熊猫生活状态的世界级保护基地。", "务必清晨开园前往，此时熊猫最活跃且喂食观赏最佳。", "3–4 小时"],
+  ],
+  北京: [
+    ["故宫博物院", "世界上现存规模最大、保存最为完整的木质结构古建筑群。", "需提前在官方微信公众号实名预约购票。", "3–4 小时"],
+    ["天坛公园", "明清两代帝王祭天、祈谷的场所，建筑艺术杰作。", "建议从南门进北门出，顺应古代祭祀路线。", "2–3 小时"],
+    ["颐和园", "中国现存规模最大、保存最完整的皇家行宫御花园。", "推荐乘坐西堤船只划行，漫步长廊。", "3 小时"],
+  ],
+};
 
 export function buildFallbackGuide(request: TravelRequest): GuideData {
   const days = Math.max(1, getTripDays(request.startDate, request.endDate));
@@ -391,10 +403,15 @@ export function buildFallbackGuide(request: TravelRequest): GuideData {
     "周边区域或深度文化体验",
   ];
 
+  const matchedCity = Object.keys(cityLandmarksMap).find((city) =>
+    request.destination.includes(city)
+  );
+  const selectedLandmarks = matchedCity ? cityLandmarksMap[matchedCity] : genericAttractions;
+
   return {
-    overview: `${request.destination}通用规划草案：${dateContext}，旅行节奏为${paceText}，同行方式为${companionText}，重点偏向${activityText}。AI 服务暂时不可用，因此以下内容采用稳定的通用旅行框架，请在出发前核实具体景点名称、开放时间、门票和交通信息。`,
-    attractions: genericAttractions.map(([name, description, tips, duration]) => ({
-      name: `${request.destination}${name}`,
+    overview: `${request.destination}经典规划方案：${dateContext}，旅行节奏为${paceText}，同行方式为${companionText}，重点偏向${activityText}。以下为您精选当地核心景点与行程搭配。`,
+    attractions: selectedLandmarks.map(([name, description, tips, duration]) => ({
+      name: matchedCity ? name : `${request.destination}${name}`,
       description,
       tips,
       duration,
