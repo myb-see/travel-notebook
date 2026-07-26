@@ -374,6 +374,52 @@ export async function enrichGuideWithPhotos(
   };
 }
 
+function tryRepairJSON(jsonStr: string): string {
+  let str = jsonStr.trim();
+  let inString = false;
+  let isEscaped = false;
+  const stack: string[] = [];
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (isEscaped) {
+      isEscaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      isEscaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (!inString) {
+      if (char === "{" || char === "[") {
+        stack.push(char);
+      } else if (char === "}" && stack[stack.length - 1] === "{") {
+        stack.pop();
+      } else if (char === "]" && stack[stack.length - 1] === "[") {
+        stack.pop();
+      }
+    }
+  }
+
+  if (inString) {
+    str += '"';
+  }
+
+  str = str.replace(/,\s*$/, "");
+
+  while (stack.length > 0) {
+    const opening = stack.pop();
+    if (opening === "{") str += "}";
+    if (opening === "[") str += "]";
+  }
+
+  return str;
+}
+
 export function extractJSONObject(text: string): unknown | null {
   const candidates: string[] = [];
   const jsonBlock = text.match(/```json\s*([\s\S]*?)```/i)?.[1];
@@ -386,13 +432,22 @@ export function extractJSONObject(text: string): unknown | null {
   if (firstBrace >= 0 && lastBrace > firstBrace) {
     candidates.push(text.slice(firstBrace, lastBrace + 1));
   }
+  if (firstBrace >= 0) {
+    candidates.push(text.slice(firstBrace));
+  }
   candidates.push(text);
 
   for (const candidate of candidates) {
+    const trimmed = candidate.trim();
+    if (!trimmed) continue;
     try {
-      return JSON.parse(candidate.trim());
+      return JSON.parse(trimmed);
     } catch {
-      // Continue trying other candidates.
+      try {
+        return JSON.parse(tryRepairJSON(trimmed));
+      } catch {
+        // Continue trying other candidates.
+      }
     }
   }
   return null;

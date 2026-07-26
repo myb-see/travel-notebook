@@ -85,6 +85,8 @@ async function* streamOpenAICompatible(
         model: config.model,
         messages,
         temperature: 0.55,
+        max_tokens: 8192,
+        max_completion_tokens: 8192,
         stream: true,
       }),
       signal: controller.signal,
