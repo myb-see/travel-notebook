@@ -43,6 +43,12 @@ import {
   type SharedTrip,
 } from "@/lib/share";
 
+import {
+  PasscodeGate,
+  PASSCODE_STORAGE_KEY,
+  CORRECT_PASSCODE,
+} from "@/components/travel/passcode-gate";
+
 interface StreamResponse {
   result: unknown;
   warning?: string;
@@ -57,11 +63,18 @@ async function streamFetch(
 ): Promise<StreamResponse> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 120_000);
+  const storedCode =
+    typeof window !== "undefined"
+      ? localStorage.getItem(PASSCODE_STORAGE_KEY) || CORRECT_PASSCODE
+      : CORRECT_PASSCODE;
 
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-access-code": storedCode,
+      },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
@@ -388,7 +401,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <PasscodeGate>
+      <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -605,5 +619,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </PasscodeGate>
   );
 }

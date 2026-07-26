@@ -23,6 +23,15 @@ function validationError(error: { issues: Array<{ message: string }> }): string 
 }
 
 export async function POST(request: NextRequest) {
+  const accessCode = request.headers.get("x-access-code");
+  const expectedCode = process.env.APP_ACCESS_CODE || "521026";
+  if (accessCode !== expectedCode) {
+    return NextResponse.json(
+      { error: "访问密钥无效，请输入正确的开屏密码 (521026) 以解锁使用 API" },
+      { status: 401 }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
