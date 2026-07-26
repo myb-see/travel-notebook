@@ -21,7 +21,7 @@ const PROVIDER_ENV_MAP: Record<
     baseURL: "GEMINI_BASE_URL",
     model: "GEMINI_MODEL",
     defaultURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-    defaultModel: "gemini-2.0-flash",
+    defaultModel: "gemini-3.5-flash",
   },
   glm: {
     apiKey: "GLM_API_KEY",
