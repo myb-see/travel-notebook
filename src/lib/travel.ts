@@ -236,14 +236,38 @@ export function formatActivities(activities: TravelRequest["activities"]): strin
   return activities.map((activity) => activityLabels[activity]).join("、");
 }
 
+const PRESET_ATTRACTION_IMAGES: Record<string, string> = {
+  栈桥: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/%E9%9D%92%E5%B2%9B%E6%A0%88%E6%A1%A5_Ehemalige_Landungsbr%C3%BCcke_Qingdao.jpg/960px-%E9%9D%92%E5%B2%9B%E6%A0%88%E6%A1%A5_Ehemalige_Landungsbr%C3%BCcke_Qingdao.jpg",
+  八大关: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/%E9%9D%92%E5%B2%9B%E5%85%AB%E5%A4%A7%E5%85%B3%E8%8A%B1%E7%9F%B3%E6%A5%BC.jpg/960px-%E9%9D%92%E5%B2%9B%E5%85%AB%E5%A4%A7%E5%85%B3%E8%8A%B1%E7%9F%B3%E6%A5%BC.jpg",
+  信号山: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/XinHaoShan_Park_of_Qingdao.JPG/960px-XinHaoShan_Park_of_Qingdao.JPG",
+  啤酒博物馆: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Tsingdao_Brewery.jpg/960px-Tsingdao_Brewery.jpg",
+  五四广场: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/51367-Qingdao_%28xiquinhosilva%29_-_Flickr.jpg/960px-51367-Qingdao_%28xiquinhosilva%29_-_Flickr.jpg",
+  宽窄巷子: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Chengdu_travel_045_%2836150300546%29.jpg/960px-Chengdu_travel_045_%2836150300546%29.jpg",
+  锦里: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Jinli_Street_35201-Chengdu_%2849068150581%29.jpg/960px-Jinli_Street_35201-Chengdu_%2849068150581%29.jpg",
+  武侯祠: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Wuhou_Shrine_Chengdu.jpg/960px-Wuhou_Shrine_Chengdu.jpg",
+  熊猫: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Grosser_Panda.JPG/960px-Grosser_Panda.JPG",
+  故宫: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/%E6%99%AF%E5%B1%B1%E5%85%AC%E5%9B%AD_%2819687188164%29.jpg/960px-%E6%99%AF%E5%B1%B1%E5%85%AC%E5%9B%AD_%2819687188164%29.jpg",
+  天坛: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Temple_of_Heaven_Beijing.jpg/960px-Temple_of_Heaven_Beijing.jpg",
+  颐和园: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Summer_Palace_Beijing.jpg/960px-Summer_Palace_Beijing.jpg",
+  埃菲尔铁塔: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Tour_Eiffel_14.jpg/960px-Tour_Eiffel_14.jpg",
+  开元寺: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Quanzhou_Kaiyuan_Temple-the_Hall_of_Mahavira.jpg/960px-Quanzhou_Kaiyuan_Temple-the_Hall_of_Mahavira.jpg",
+  西湖: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/West_Lake_Hangzhou.jpg/960px-West_Lake_Hangzhou.jpg",
+  外滩: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/The_Bund_Shanghai.jpg/960px-The_Bund_Shanghai.jpg",
+};
+
 export async function fetchWikiAttractionPhoto(
   title: string,
   destination: string
 ): Promise<string | null> {
+  // Check instant 0ms preset CDN map first
+  for (const [key, url] of Object.entries(PRESET_ATTRACTION_IMAGES)) {
+    if (title.includes(key)) return url;
+  }
+
   const getJson = async (url: string) => {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2000);
+      const timeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(url, {
         headers: { "User-Agent": "TravelNotebookApp/2.0 (https://travel.521026.xyz; mybsee@gmail.com)" },
         signal: controller.signal,
