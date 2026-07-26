@@ -243,9 +243,9 @@ export async function fetchWikiAttractionPhoto(
   const getJson = async (url: string) => {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3500);
+      const timeout = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(url, {
-        headers: { "User-Agent": "TravelNotebookApp/2.0 (mybsee@gmail.com)" },
+        headers: { "User-Agent": "TravelNotebookApp/2.0 (https://travel.521026.xyz; mybsee@gmail.com)" },
         signal: controller.signal,
       }).finally(() => clearTimeout(timeout));
       if (!res.ok) return null;
@@ -266,6 +266,7 @@ export async function fetchWikiAttractionPhoto(
     pureName,
   ];
 
+  // 1. Chinese Wikipedia title & pageimages query
   for (const term of searchTerms) {
     if (!term || term.length < 2) continue;
     const wikiUrl = `https://zh.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
@@ -285,7 +286,22 @@ export async function fetchWikiAttractionPhoto(
     }
   }
 
-  // Fallback to Wikipedia Opensearch
+  // 2. Wikimedia Commons fallback search
+  const commonsUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(
+    `${destination} ${pureName}`
+  )}&gsrlimit=1&prop=pageimages&pithumbsize=800&format=json`;
+  const commonsData = (await getJson(commonsUrl)) as {
+    query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+  } | null;
+  if (commonsData?.query?.pages) {
+    const pageId = Object.keys(commonsData.query.pages)[0];
+    if (pageId && pageId !== "-1") {
+      const src = commonsData.query.pages[pageId]?.thumbnail?.source;
+      if (src) return src;
+    }
+  }
+
+  // 3. Wikipedia Opensearch fallback
   for (const term of [pureName, `${destination} ${pureName}`]) {
     if (!term || term.length < 2) continue;
     const searchUrl = `https://zh.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
