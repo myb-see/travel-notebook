@@ -353,6 +353,26 @@ export async function fetchWikiAttractionPhoto(
   return null;
 }
 
+export async function enrichGuideWithPhotos(
+  guide: GuideData,
+  destination: string
+): Promise<GuideData> {
+  if (!guide.attractions || guide.attractions.length === 0) return guide;
+
+  const enrichedAttractions = await Promise.all(
+    guide.attractions.map(async (attraction) => {
+      if (attraction.imageUrl) return attraction;
+      const photo = await fetchWikiAttractionPhoto(attraction.name, destination);
+      return photo ? { ...attraction, imageUrl: photo } : attraction;
+    })
+  );
+
+  return {
+    ...guide,
+    attractions: enrichedAttractions,
+  };
+}
+
 export function extractJSONObject(text: string): unknown | null {
   const candidates: string[] = [];
   const jsonBlock = text.match(/```json\s*([\s\S]*?)```/i)?.[1];
