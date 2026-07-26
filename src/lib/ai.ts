@@ -34,9 +34,8 @@ const PROVIDER_ENV_MAP: Record<
 
 export function getAiConfig(provider: AiProvider): AiConfig {
   const env = PROVIDER_ENV_MAP[provider];
-  const apiKey = process.env[env.apiKey];
+  const apiKey = process.env[env.apiKey] || process.env.AI_API_KEY;
 
-  // Provider-specific env vars take priority; fall back to legacy AI_API_KEY.
   if (apiKey) {
     let model = process.env[env.model] || env.defaultModel;
     if (provider === "gemini" && (model.includes("2.0") || !model)) {
@@ -51,16 +50,6 @@ export function getAiConfig(provider: AiProvider): AiConfig {
       baseURL: (process.env[env.baseURL] || env.defaultURL).replace(/\/$/, ""),
       model,
       source: provider,
-    };
-  }
-
-  // Legacy single-provider configuration.
-  if (process.env.AI_API_KEY) {
-    return {
-      apiKey: process.env.AI_API_KEY,
-      baseURL: (process.env.AI_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3").replace(/\/$/, ""),
-      model: process.env.AI_MODEL || "doubao-seed-2-0-lite-260215",
-      source: "legacy",
     };
   }
 
@@ -126,6 +115,7 @@ async function* streamOpenAICompatible(
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
@@ -171,10 +161,13 @@ export async function* streamAI(
       yield* streamOpenAICompatible(messages, config);
       return;
     } catch (err) {
-      // 双 AI 自动热备无缝倒换：主 AI 触发 429 限流时，自动秒级无缝切至备用 AI
+      // 智能热备无缝倒换：当主 AI 触发 429/限流/错误时，自动尝试无缝倒换至备用 AI
       const fallbackProvider: AiProvider = provider === "gemini" ? "glm" : "gemini";
       const fallbackConfig = getAiConfig(fallbackProvider);
-      if (fallbackConfig.apiKey && fallbackConfig.apiKey !== config.apiKey) {
+      if (
+        fallbackConfig.apiKey &&
+        (fallbackConfig.baseURL !== config.baseURL || fallbackConfig.model !== config.model)
+      ) {
         try {
           yield* streamOpenAICompatible(messages, fallbackConfig);
           return;
