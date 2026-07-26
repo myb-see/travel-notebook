@@ -386,6 +386,15 @@ const cityLandmarksMap: Record<string, Array<[string, string, string, string]>> 
   ],
 };
 
+const genericAttractions: Array<[string, string, string, string]> = [
+  ["历史核心区", "从城市最具代表性的街区开始，了解当地历史脉络与建筑风格。", "优先步行游览，并在出发前核实开放区域。", "2–3 小时"],
+  ["代表性博物馆", "通过常设展览快速建立对目的地文化、艺术与社会背景的认识。", "提前预约热门时段，注意闭馆日。", "2–3 小时"],
+  ["城市地标与观景点", "从高处或标志性公共空间观察城市布局与天际线。", "日落前 1 小时到达，兼顾白天与夜景。", "1.5–2 小时"],
+  ["本地市场", "体验当地食材、日常消费与市井文化，适合安排简餐。", "携带少量现金并注意个人物品。", "1–2 小时"],
+  ["特色社区", "避开单一打卡点，在咖啡馆、小店与公共空间中感受本地生活。", "按兴趣挑选 2–3 个相邻街区，避免跨城折返。", "半天"],
+  ["公园或滨水区域", "作为高强度游览后的缓冲，适合散步、休息和拍摄。", "根据天气准备防晒、防雨或保暖层。", "1.5–3 小时"],
+];
+
 export function buildFallbackGuide(request: TravelRequest): GuideData {
   const days = Math.max(1, getTripDays(request.startDate, request.endDate));
   const dateContext = hasTravelDates(request)
