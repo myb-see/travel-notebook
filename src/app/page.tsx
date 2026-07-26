@@ -256,9 +256,10 @@ export default function Home() {
       setPackingError(null);
       setView("form");
 
-      // 统一采用串行顺序调度 (runGuide 运行完毕后再启动 runPacking)
-      // 彻底消除免费 API Key 在并发/同时发起 2 个请求时的 429 Rate Limit 限制
+      // 统一采用串行顺序调度与 1s 缓冲窗口
+      // 彻底消除免费 API Key 连续并发时的 429 Rate Limit 限制
       await runGuide(request);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       await runPacking(request);
     },
     [runGuide, runPacking]

@@ -167,8 +167,23 @@ export async function* streamAI(
   const config = getAiConfig(provider);
 
   if (config.apiKey) {
-    yield* streamOpenAICompatible(messages, config);
-    return;
+    try {
+      yield* streamOpenAICompatible(messages, config);
+      return;
+    } catch (err) {
+      // 双 AI 自动热备无缝倒换：主 AI 触发 429 限流时，自动秒级无缝切至备用 AI
+      const fallbackProvider: AiProvider = provider === "gemini" ? "glm" : "gemini";
+      const fallbackConfig = getAiConfig(fallbackProvider);
+      if (fallbackConfig.apiKey && fallbackConfig.apiKey !== config.apiKey) {
+        try {
+          yield* streamOpenAICompatible(messages, fallbackConfig);
+          return;
+        } catch {
+          // Ignore secondary failure and throw original error
+        }
+      }
+      throw err;
+    }
   }
 
   yield* streamCoze(messages, headers);
