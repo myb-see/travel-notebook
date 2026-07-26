@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldAlert,
+  Camera,
 } from "lucide-react";
 
 import type { GuideData } from "@/lib/travel";
@@ -82,8 +83,31 @@ export function GuideDisplay({ guide }: GuideDisplayProps) {
           {guide.attractions.map((attraction, index) => (
             <Card
               key={index}
-              className="group hover:shadow-md transition-all duration-200 border-border/60"
+              className="group hover:shadow-md transition-all duration-200 border-border/60 overflow-hidden"
             >
+              {attraction.imageUrl && (
+                <div className="relative w-full h-48 sm:h-56 overflow-hidden bg-muted">
+                  <img
+                    src={attraction.imageUrl}
+                    alt={attraction.name}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.parentElement) {
+                        target.parentElement.style.display = "none";
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+                    <span className="inline-flex items-center gap-1.5 text-xs bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+                      <Camera className="w-3.5 h-3.5 text-yellow-400" />
+                      官方真实实拍
+                    </span>
+                  </div>
+                </div>
+              )}
               <CardHeader className="pb-2 pt-4 px-4">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
